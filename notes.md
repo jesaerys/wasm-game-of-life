@@ -1,0 +1,17 @@
+# Notes on the "Rust and WebAssembly" book
+
+https://rustwasm.github.io/docs/book/introduction.html
+
+
+## Setup
+
+Installed `wasm-pack` with cargo: `cargo install wasm-pack`.
+
+Installed `nvm` using the the official install script, then installed the latest
+`npm` with `nvm install node`.
+
+
+## Hello, World!
+
+`src/lib.rs` is a little different than what's shown in the book, but it seems
+to be basically the same.
