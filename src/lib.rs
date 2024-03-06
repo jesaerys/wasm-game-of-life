@@ -21,7 +21,7 @@ pub struct Universe {
 
 impl Universe {
     fn get_index(&self, row: u32, column: u32) -> usize {
-        (row * self.width + column) as usize
+        get_index(self.width, row, column)
     }
 
     fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
@@ -99,6 +99,30 @@ impl Universe {
         }
     }
 
+    pub fn new_spaceship() -> Universe {
+        let width = 64;
+        let height = 64;
+
+        let mut cells = Vec::new();
+        for _ in 0..width*height {
+            cells.push(Cell::Dead)
+        }
+        // column 0 1 2
+        //  row 0 ◻ ◼ ◻
+        //      1 ◻ ◻ ◼
+        //      2 ◼ ◼ ◼
+        let alive = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)];
+        for (row, column) in alive {
+            cells[get_index(width, row, column)] = Cell::Alive;
+        }
+
+        Universe {
+            width,
+            height,
+            cells,
+        }
+    }
+
     pub fn render(&self) -> String {
         self.to_string()
     }
@@ -128,4 +152,8 @@ impl fmt::Display for Universe {
 
         Ok(())
     }
+}
+
+fn get_index(width: u32, row: u32, column: u32) -> usize {
+    (row * width + column) as usize
 }
