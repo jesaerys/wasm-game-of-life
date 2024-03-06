@@ -20,3 +20,67 @@ the `pkg` directory.
 Running `npm init wasm-app www` resulted in cloning the
 [create-wasm-app](https://github.com/rustwasm/create-wasm-app) repo, commit
 `9ac3dff` on branch `master`, into the `www` directory. I removed `www/.git`.
+
+Tried running `npm run start` in the `www` directory, but got an error about
+`ERR_OSSL_EVP_UNSUPPORTED`:
+
+```console
+$ npm run start
+
+> create-wasm-app@0.1.0 start
+> webpack-dev-server
+
+(node:2431) [DEP0111] DeprecationWarning: Access to process.binding('http_parser') is deprecated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ℹ ｢wds｣: Project is running at http://localhost:8080/
+ℹ ｢wds｣: webpack output is served from /
+ℹ ｢wds｣: Content not from webpack is served from /Users/jake/Documents/wasm-game-of-life/www
+node:internal/crypto/hash:68
+  this[kHandle] = new _Hash(algorithm, xofLen);
+                  ^
+
+Error: error:0308010C:digital envelope routines::unsupported
+    at new Hash (node:internal/crypto/hash:68:19)
+    at Object.createHash (node:crypto:138:10)
+    at module.exports (/Users/jake/Documents/wasm-game-of-life/www/node_modules/webpack/lib/util/createHash.js:135:53)
+    at NormalModule._initBuildHash (/Users/jake/Documents/wasm-game-of-life/www/node_modules/webpack/lib/NormalModule.js:417:16)
+    at handleParseError (/Users/jake/Documents/wasm-game-of-life/www/node_modules/webpack/lib/NormalModule.js:471:10)
+    at /Users/jake/Documents/wasm-game-of-life/www/node_modules/webpack/lib/NormalModule.js:503:5
+    at /Users/jake/Documents/wasm-game-of-life/www/node_modules/webpack/lib/NormalModule.js:358:12
+    at /Users/jake/Documents/wasm-game-of-life/www/node_modules/loader-runner/lib/LoaderRunner.js:373:3
+    at iterateNormalLoaders (/Users/jake/Documents/wasm-game-of-life/www/node_modules/loader-runner/lib/LoaderRunner.js:214:10)
+    at Array.<anonymous> (/Users/jake/Documents/wasm-game-of-life/www/node_modules/loader-runner/lib/LoaderRunner.js:205:4)
+    at Storage.finished (/Users/jake/Documents/wasm-game-of-life/www/node_modules/enhanced-resolve/lib/CachedInputFileSystem.js:43:16)
+    at /Users/jake/Documents/wasm-game-of-life/www/node_modules/enhanced-resolve/lib/CachedInputFileSystem.js:79:9
+    at /Users/jake/Documents/wasm-game-of-life/www/node_modules/graceful-fs/graceful-fs.js:78:16
+    at FSReqCallback.readFileAfterClose [as oncomplete] (node:internal/fs/read/context:68:3) {
+  opensslErrorStack: [ 'error:03000086:digital envelope routines::initialization error' ],
+  library: 'digital envelope routines',
+  reason: 'unsupported',
+  code: 'ERR_OSSL_EVP_UNSUPPORTED'
+}
+
+Node.js v21.6.2
+```
+
+This error seems to date back to around 2021 with the release of Node.js 17.0.0.
+From the [release notes](
+https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V17.md#17.0.0),
+
+> If you hit an `ERR_OSSL_EVP_UNSUPPORTED` error in your application with
+> Node.js 17, it’s likely that your application or a module you’re using is
+> attempting to use an algorithm or key size which is no longer allowed by
+> default with OpenSSL 3.0. A command-line option, `--openssl-legacy-provider`,
+> has been added to revert to the legacy provider as a temporary workaround for
+> these tightened restrictions.
+
+I'm not sure yet what exactly (e.g., which module or dependency) is attempting
+to use a disallowed algorithm or key size, but commit 9ac3dff of the
+create-wasm-app repo dates back to 2020, before the release of Node.js 17.0.0,
+and I'm currently running v21.
+
+Anyway, enabled the recommended switch and it worked:
+
+```
+NODE_OPTIONS=--openssl-legacy-provider npm run start
+```
