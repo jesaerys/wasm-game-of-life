@@ -129,3 +129,87 @@ One example of a stable initial state is,
 because none of the dead cells have any more than two live neighbors so they all
 remain dead, while each live cell has exactly three live neighbors and therefore
 remains alive.
+
+
+## 4.4. Implementing Life
+
+For the exercise on single-bit representation, I had no idea how to do it. All
+of the rust docs I read showed the smallest data types taking at least a full
+byte. In [a particular discussion thread](
+https://users.rust-lang.org/t/is-there-a-one-bit-value-type-in-rust/64816), the
+recommendation was to use a third-party crate. Sure enough, the first sentence
+in the book's solution mentions using the `fixedbitset` crate.
+
+Using that hint, I attempted to implement the rest on my own. After reading
+through the `fixedbitset` docs, I was able to work out how to do most of the
+refactoring. I needed help with the pointer part, though, so I used the solution
+to learn how to do that. On the javascript side, the solution for determining
+whether a particular bit is enabled (i.e., whether a cell is alive) involved
+some bit manipulation:
+
+```javascript
+const bitIsSet = (n, arr) => {
+  const byte = Math.floor(n / 8);
+  const mask = 1 << (n % 8);
+  return (arr[byte] & mask) === mask
+}
+```
+
+Bit manipulation is unfamiliar to me, so I decided to spend some time
+understanding how the `bitIsSet` function works.
+
+* The arguments `arr` and `n` correspond to the `Uint8Array` overlay array and
+  the flattened index of the cell, respectively.
+
+  * `Uint8Array` is a *byte* array that overlays the `FixedBitSet` of bits on
+    the Rust side. Each byte in `arr` represents a group of eight cells (bits),
+    and the value of the byte uniquely encodes which of those cells are alive
+    and which are dead.
+
+  * The "flattened" index being that derived from the row and column of the
+    cell in the 2D grid, `row * width + column`.
+
+  * E.g., `n = 21` refers to the 22nd bit in the `FixedBitSet`, corresponding to
+    the sixth bit (`n % 8 = 5`) in the third byte (`floor(n / 8) = 2`) in `arr`:
+
+    ```
+                 bit: 7 6 5 4  3 2 1 0
+    byte 0 (arr[0])  [0 0 0 0  0 0 0 0] <- FixedBitSet[0]
+    byte 1 (arr[1])  [0 0 0 0  0 0 0 0] <- FixedBitSet[8]
+    byte 2 (arr[2])  [0 0 0 0  0 0 0 0]
+    ...                   ^          ^ FixedBitSet[16]
+                    FixedBitSet[21]
+    ```
+
+* `byte` is the byte that bit `n` belongs to. If `n` is 21, then `byte` is 2.
+
+* `n % 8` is the position of the bit in its byte. If `n` is 21, then `n % 8` is
+  5.
+
+* `<<` is the left shift operator. It takes the first argument and shifts its
+  binary form to the left the number of places indicated by the second argument,
+  bringing in zeros on the right as needed. For example,
+  
+  ```
+  1 << 5
+  = 00000001 << 5
+  = 00100000 (shift to the left 5 places)
+  = 32
+  ```
+
+* `mask` is therefore a pattern indicating the bit of interest in the byte: it's
+  1 at the bit corresponding to `n` and 0 elsewhere. If `n` is 21, then `mask`
+  is 1 at the sixth bit, `00100000` (`1 << (n % 8) = 1 << 5 = 32 = 00100000`.
+
+* `arr[byte] & mask` is the bitwise AND between the byte containing bit `n` and
+  `mask`. The bitwise AND operation produces a new byte that has a 1 only where
+  the two input bytes both have a 1. Therefore, because `mask` is 0 everywhere
+  except for at the position of interest (`n % 8`), the result will equal `mask`
+  only if that bit is enabled. For instance, assuming `n` is 21 such that `mask`
+  is `00100000`,
+
+  * If `arr[byte]` is `01010101`, then `arr[byte] & mask` is `00000000`, which
+    does not equal `mask`, therefore bit `n` is not enabled (the cell is dead).
+
+  * If `arr[byte]` is `01110101`, then `arr[byte] & mask` is `00100000`, which
+    *does* equal `mask`, therefore bit `n` *is* enabled (the cell is alive).
