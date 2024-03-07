@@ -2,6 +2,7 @@ mod utils;
 
 use std::fmt;
 
+use js_sys::Math;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -114,6 +115,24 @@ impl Universe {
         let alive = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)];
         for (row, column) in alive {
             cells[get_index(width, row, column)] = Cell::Alive;
+        }
+
+        Universe {
+            width,
+            height,
+            cells,
+        }
+    }
+
+    pub fn new_random(width: u32, height: u32) -> Universe {
+        let alive_probability = 0.5;
+        let mut cells = Vec::new();
+        for _ in 0..(width * height) {
+            cells.push(if Math::random() >= alive_probability {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            });
         }
 
         Universe {
