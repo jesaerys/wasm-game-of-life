@@ -2,20 +2,26 @@ mod utils;
 
 use std::fmt;
 
-use fixedbitset::FixedBitSet;
-use js_sys::Math;
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cell {
+    Dead = 0,
+    Alive = 1,
+}
 
 #[wasm_bindgen]
 pub struct Universe {
     width: u32,
     height: u32,
-    cells: FixedBitSet,
+    cells: Vec<Cell>,
 }
 
 impl Universe {
     fn get_index(&self, row: u32, column: u32) -> usize {
-        get_index(self.width, row, column)
+        (row * self.width + column) as usize
     }
 
     fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
@@ -48,13 +54,24 @@ impl Universe {
                 let cell = self.cells[idx];
                 let live_neighbors = self.live_neighbor_count(row, col);
 
-                next.set(idx, match (cell, live_neighbors) {
-                    (true, x) if x < 2 => false,
-                    (true, 2) | (true, 3) => true,
-                    (true, x) if x > 3 => false,
-                    (false, 3) => true,
-                    (_, _) => false,
-                });
+                let next_cell = match (cell, live_neighbors) {
+                    // Rule 1: Any live cell with fewer than two live neighbours
+                    // dies, as if caused by underpopulation.
+                    (Cell::Alive, x) if x < 2 => Cell::Dead,
+                    // Rule 2: Any live cell with two or three live neighbours
+                    // lives on to the next generation.
+                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
+                    // Rule 3: Any live cell with more than three live
+                    // neighbours dies, as if by overpopulation.
+                    (Cell::Alive, x) if x > 3 => Cell::Dead,
+                    // Rule 4: Any dead cell with exactly three live neighbours
+                    // becomes a live cell, as if by reproduction.
+                    (Cell::Dead, 3) => Cell::Alive,
+                    // All other cells remain in the same state.
+                    (otherwise, _) => otherwise,
+                };
+
+                next[idx] = next_cell;
             }
         }
 
@@ -65,51 +82,15 @@ impl Universe {
         let width = 64;
         let height = 64;
 
-        let size = (width * height) as usize;
-        let mut cells = FixedBitSet::with_capacity(size);
-
-        for i in 0..size {
-            cells.set(i, i % 2 == 0 || i % 7 == 0);
-        }
-
-        Universe {
-            width,
-            height,
-            cells,
-        }
-    }
-
-    pub fn new_spaceship() -> Universe {
-        let width = 64;
-        let height = 64;
-
-        let size = (width * height) as usize;
-        let mut cells = FixedBitSet::with_capacity(size);
-        // column 0 1 2
-        //  row 0 ◻ ◼ ◻
-        //      1 ◻ ◻ ◼
-        //      2 ◼ ◼ ◼
-        let alive = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)];
-        for (row, column) in alive {
-            cells.insert(get_index(width, row, column));
-        }
-
-        Universe {
-            width,
-            height,
-            cells,
-        }
-    }
-
-    pub fn new_random(width: u32, height: u32) -> Universe {
-        let alive_probability = 0.5;
-        let size = (width * height) as usize;
-        let mut cells = FixedBitSet::with_capacity(size);
-        for index in 0..size {
-            if Math::random() >= alive_probability {
-                cells.insert(index);
-            }
-        }
+        let cells = (0..width * height)
+            .map(|i| {
+                if i % 2 == 0 || i % 7 == 0 {
+                    Cell::Alive
+                } else {
+                    Cell::Dead
+                }
+            })
+            .collect();
 
         Universe {
             width,
@@ -130,25 +111,21 @@ impl Universe {
         self.height
     }
 
-    pub fn cells(&self) -> *const usize {
-        self.cells.as_slice().as_ptr()
+    pub fn cells(&self) -> *const Cell {
+        self.cells.as_ptr()
     }
 }
 
 impl fmt::Display for Universe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for row in 0..self.height {
-            for column in 0..self.width {
-                let i = self.get_index(row, column);
-                let symbol = if self.cells[i] { '◻' } else { '◼' };
+        for line in self.cells.as_slice().chunks(self.width as usize) {
+            for &cell in line {
+                let symbol = if cell == Cell::Dead { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
             write!(f, "\n")?;
         }
+
         Ok(())
     }
-}
-
-fn get_index(width: u32, row: u32, column: u32) -> usize {
-    (row * width + column) as usize
 }
