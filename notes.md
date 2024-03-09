@@ -213,3 +213,92 @@ understanding how the `bitIsSet` function works.
 
   * If `arr[byte]` is `01110101`, then `arr[byte] & mask` is `00100000`, which
     *does* equal `mask`, therefore bit `n` *is* enabled (the cell is alive).
+
+
+## 4.5. Testing Life
+
+### `wasm-bindgen` limitations
+
+This chapter introduces two new methods on `Universe`:
+* `get_cells(&self) -> &[Cell]`
+* `set_cells(&mut self, cells: &[(u32, u32)]) -> ()`
+
+It states that these methods must go in an `impl Universe` block without the
+`#[wasm-bindgen]` attribute. I tried putting them in the impl block with the
+`#[wasm-bindgen]` attribute to see what would happen. I got the following error
+for `get_cells`:
+
+```
+error: cannot return a borrowed ref with #[wasm_bindgen]
+  --> src/lib.rs:59:32
+   |
+59 |     pub fn get_cells(&self) -> &[Cell] {
+   |                                ^^^^^^^
+
+error: could not compile `wasm-game-of-life` (lib) due to 1 previous error
+```
+
+The chapter mentions,
+
+> Rust-generated WebAssembly functions cannot return borrowed references.
+
+That's exactly the case for `get_cells`, which returns a slice of cells, and the
+error from `cargo` explicitly says that's not supported by `#[wasm-bindgen]`.
+
+For `set_cells`, the error from `cargo` was,
+
+```
+error[E0277]: the trait bound `[(u32, u32)]: RefFromWasmAbi` is not satisfied
+  --> src/lib.rs:52:1
+   |
+52 | #[wasm_bindgen]
+   | ^^^^^^^^^^^^^^^ the trait `RefFromWasmAbi` is not implemented for `[(u32, u32)]`
+   |
+   = help: the following other types implement trait `RefFromWasmAbi`:
+             [isize]
+             [i8]
+             [i16]
+             [i32]
+             [i64]
+             [usize]
+             [u8]
+             [u16]
+           and 4 others
+   = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `wasm-game-of-life` (lib) due to 1 previous error
+```
+
+From the `wasm_bindgen` API docs, `RefFromWasmAbi` is,
+
+> A trait for anything that can be recovered as some sort of shared reference
+> from the wasm ABI boundary.
+
+It's implemented for `str` and `[T]`, where `T` includes most primitive types
+(such as `u32`), but *not* tuples, hence the error. One workaround would be to
+receive the row and column indices in separate slices, e.g.,
+`set_cells(&mut self, rows: &[u32], cols: &[u32])`, and zip them together.
+However, that's unnecessary because the purpose of these methods is to help with
+testing, so they don't need to be available to javascript.
+
+
+### Running the tests
+
+The first time I tried running `wasm-pack test`, I got a weird SIGKILL thing and
+it just hung there until I hit `ctrl-C`:
+
+```
+$ wasm-pack test --firefox --headless
+...
+     Running tests/web.rs (target/wasm32-unknown-unknown/debug/deps/web-29967d765c7c8c74.wasm)
+Set timeout to 20 seconds...
+Running headless tests in Firefox on `http://127.0.0.1:57679/`
+Try find `webdriver.json` for configure browser's capabilities:
+Not found
+driver status: signal: 9 (SIGKILL)
+
+```
+
+I'm not sure what cause that, but I tried again and the test completed so it
+seems to be working.
