@@ -302,3 +302,11 @@ driver status: signal: 9 (SIGKILL)
 
 I'm not sure what cause that, but I tried again and the test completed so it
 seems to be working.
+
+
+## 4.6. Debugging
+
+Seems straightforward. Using `web_sys::console::log` and variants slows down the
+program considerably, though, so I omitted the calls to `log!` shown in the book
+and I added `#[allow(unused_macros)]` to the `log!` macro definition. Will
+definitely make sure to *only* use `log!` for debugging.
