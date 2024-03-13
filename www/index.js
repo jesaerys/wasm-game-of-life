@@ -38,12 +38,17 @@ canvas.addEventListener("click", event => {
 const ctx = canvas.getContext('2d');
 
 let animationId = null;
+let tickAccumulator = 0;
 
 const renderLoop = () => {
   drawGrid();
   drawCells();
 
-  universe.tick();
+  tickAccumulator += ticksPerFrame();
+  while (tickAccumulator > 1) {
+    universe.tick();
+    tickAccumulator -= 1;
+  }
 
   animationId = requestAnimationFrame(renderLoop);
 };
@@ -122,6 +127,23 @@ playPauseButton.addEventListener("click", event => {
   }
 });
 
+const ticksPerFrameWidget = document.getElementById("ticks-per-frame-widget");
+
+const ticksPerFrame = () => {
+  return 10 ** ticksPerFrameWidget.value
+}
+
+const ticksPerFrameValue = document.getElementById("ticks-per-frame-value");
+
+const updateTicksPerFrameValue = () => {
+  ticksPerFrameValue.textContent = ticksPerFrame().toFixed(3);
+}
+
+ticksPerFrameWidget.addEventListener("input", event => {
+  updateTicksPerFrameValue();
+});
+
 drawGrid();
 drawCells();
+updateTicksPerFrameValue();
 play();
