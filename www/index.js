@@ -149,6 +149,7 @@ resetToRandomButtom.textContent = "Random";
 
 resetToRandomButtom.addEventListener("click", event => {
   universe.reset_to_random();
+  drawCells();
 })
 
 const resetToDeadButtom = document.getElementById("reset-dead");
@@ -156,6 +157,7 @@ resetToDeadButtom.textContent = "Clear";
 
 resetToDeadButtom.addEventListener("click", event => {
   universe.reset_to_dead();
+  drawCells();
 })
 
 drawGrid();
