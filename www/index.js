@@ -8,6 +8,7 @@ const ALIVE_COLOR = "#000000";
 
 // Construct the universe, and get its width and height.
 const universe = Universe.new();
+universe.reset_to_mod_2_mod_7();
 const width = universe.width();
 const height = universe.height();
 
@@ -142,6 +143,20 @@ const updateTicksPerFrameValue = () => {
 ticksPerFrameWidget.addEventListener("input", event => {
   updateTicksPerFrameValue();
 });
+
+const resetToRandomButtom = document.getElementById("reset-random");
+resetToRandomButtom.textContent = "Random";
+
+resetToRandomButtom.addEventListener("click", event => {
+  universe.reset_to_random();
+})
+
+const resetToDeadButtom = document.getElementById("reset-dead");
+resetToDeadButtom.textContent = "Clear";
+
+resetToDeadButtom.addEventListener("click", event => {
+  universe.reset_to_dead();
+})
 
 drawGrid();
 drawCells();

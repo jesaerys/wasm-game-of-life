@@ -1,6 +1,7 @@
 mod utils;
 
 use std::fmt;
+use js_sys::Math;
 
 use wasm_bindgen::prelude::*;
 
@@ -118,13 +119,7 @@ impl Universe {
         let height = 64;
 
         let cells = (0..width * height)
-            .map(|i| {
-                if i % 2 == 0 || i % 7 == 0 {
-                    Cell::Alive
-                } else {
-                    Cell::Dead
-                }
-            })
+            .map(|_| Cell::Dead)
             .collect();
 
         Universe {
@@ -169,6 +164,31 @@ impl Universe {
     pub fn toggle_cell(&mut self, row: u32, column: u32) {
         let idx = self.get_index(row, column);
         self.cells[idx].toggle();
+    }
+
+    pub fn reset_to_mod_2_mod_7(&mut self) {
+        self.cells = (0..self.width * self.height).map(|i| {
+            if i % 2 == 0 || i % 7 == 0 {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            }
+        }).collect();
+    }
+
+    pub fn reset_to_random(&mut self) {
+        let alive_probability = 0.5;
+        self.cells = (0..self.width * self.height).map(|_| {
+            if Math::random() >= alive_probability {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            }
+        }).collect();
+    }
+
+    pub fn reset_to_dead(&mut self) {
+        self.cells = (0..self.width * self.height).map(|_| Cell::Dead).collect();
     }
 }
 
