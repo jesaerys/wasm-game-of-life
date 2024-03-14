@@ -88,6 +88,8 @@ NODE_OPTIONS=--openssl-legacy-provider npm run start
 
 ## 4.3. Rules
 
+### Exercise 1
+
 Starting with,
 ```
 ◻️◻️◻️◻️◻️
@@ -118,6 +120,9 @@ to come alive. This leads to the same grid as the initial state:
 ◻️◻️◻️◻️◻️
 ```
 
+
+### Exercise 2
+
 One example of a stable initial state is,
 ```
 ◻️◻️◻️◻️
@@ -132,6 +137,57 @@ remains alive.
 
 
 ## 4.4. Implementing Life
+
+The `live_neighbor_count` implementation in the book wasn't immediately obvious
+to me. Here it is broken down:
+
+```rust
+impl Universe {
+    // ...
+
+    fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
+        let mut count = 0;
+        for delta_row in [self.height - 1, 0, 1].iter().cloned() {
+            for delta_col in [self.width - 1, 0, 1].iter().cloned() {
+                if delta_row == 0 && delta_col == 0 {
+                    continue;
+                }
+
+                let neighbor_row = (row + delta_row) % self.height;
+                let neighbor_col = (column + delta_col) % self.width;
+                let idx = self.get_index(neighbor_row, neighbor_col);
+                count += self.cells[idx] as u8;
+            }
+        }
+        count
+    }
+}
+```
+
+Naively, `delta_row` and `delta_col` should both be in `[-1, 0, 1]` in order to
+search within 1 cell in all directions. This particular version of life uses a
+toroidal universe, therefore mod `%` is used to wrap around the edges. E.g., if
+the width is 10, the column is 9 (the right edge), and `delta_col` is 1, then
+the neighbor column is (9+1) % 10 = 0 and the right side of the search pattern
+has wrapped around to the left side. Fairly straightforward.
+
+But consider the other side: say the column is 0 (the left edge) and `delta_col`
+is -1. In this case, the neighbor column is (0 + -1) % 10 = 9 and the left side
+of the search pattern has wrapped around to the right side. This makes sense
+mathematically, just like the previous case. *However*, the `row` and `column`
+arguments are `u32` values, so `row + delta_row` and `column + delta_col` can't
+go negative. In fact, the compiler won't even allow entering the delta values as
+`[-1, 0, 1]` because it infers from the addition with `row` and `column` that
+the deltas should also be `u32`, and -1 isn't a valid `u32` value.
+
+The workaround is to offset the negative deltas by the width/height, letting the
+`%` take care of putting the sum back in the actual grid. Repeating the last
+example, if `delta_col` is `width - 1 = 10 - 1 = 9`, then the neighbor column is
+(0 + 9) % 10 = 9. This gives the same correct result as before, but it works for
+`u32`s.
+
+
+### Exercise 3
 
 For the exercise on single-bit representation, I had no idea how to do it. All
 of the rust docs I read showed the smallest data types taking at least a full
