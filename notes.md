@@ -366,13 +366,3 @@ Seems straightforward. Using `web_sys::console::log` and variants slows down the
 program considerably, though, so I omitted the calls to `log!` shown in the book
 and I added `#[allow(unused_macros)]` to the `log!` macro definition. Will
 definitely make sure to *only* use `log!` for debugging.
-
-
-## 4.7. Adding Interactivity
-
-It seems like the coordinate system could be improved. Using `u32` seems like an
-unnecessary limitation, making it impossible to specify delta patterns without
-adding `width` and `length` to what are naturally negative values. It seems like
-using `i32` for row/column coordinates would make things much easier. I'll keep
-going using `u32` in case later parts of the book reveal a deeper reason for it.
-But if not, then I'll consider changing coordinates to `i32`.

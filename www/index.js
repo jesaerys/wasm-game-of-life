@@ -8,7 +8,6 @@ const ALIVE_COLOR = "#000000";
 
 // Construct the universe, and get its width and height.
 const universe = Universe.new();
-universe.reset_to_mod_2_mod_7();
 const width = universe.width();
 const height = universe.height();
 
@@ -30,13 +29,7 @@ canvas.addEventListener("click", event => {
   const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
   const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
 
-  if (event.altKey) {
-    universe.insert_glider(row, col);
-  } else if (event.shiftKey) {
-    universe.insert_pulsar(row, col);
-  } else {
-    universe.toggle_cell(row, col);
-  }
+  universe.toggle_cell(row, col);
 
   drawGrid();
   drawCells();
@@ -45,17 +38,12 @@ canvas.addEventListener("click", event => {
 const ctx = canvas.getContext('2d');
 
 let animationId = null;
-let tickAccumulator = 0;
 
 const renderLoop = () => {
   drawGrid();
   drawCells();
 
-  tickAccumulator += ticksPerFrame();
-  while (tickAccumulator > 1) {
-    universe.tick();
-    tickAccumulator -= 1;
-  }
+  universe.tick();
 
   animationId = requestAnimationFrame(renderLoop);
 };
@@ -134,39 +122,6 @@ playPauseButton.addEventListener("click", event => {
   }
 });
 
-const ticksPerFrameWidget = document.getElementById("ticks-per-frame-widget");
-
-const ticksPerFrame = () => {
-  return 10 ** ticksPerFrameWidget.value
-}
-
-const ticksPerFrameValue = document.getElementById("ticks-per-frame-value");
-
-const updateTicksPerFrameValue = () => {
-  ticksPerFrameValue.textContent = ticksPerFrame().toFixed(3);
-}
-
-ticksPerFrameWidget.addEventListener("input", event => {
-  updateTicksPerFrameValue();
-});
-
-const resetToRandomButtom = document.getElementById("reset-random");
-resetToRandomButtom.textContent = "Random";
-
-resetToRandomButtom.addEventListener("click", event => {
-  universe.reset_to_random();
-  drawCells();
-})
-
-const resetToDeadButtom = document.getElementById("reset-dead");
-resetToDeadButtom.textContent = "Clear";
-
-resetToDeadButtom.addEventListener("click", event => {
-  universe.reset_to_dead();
-  drawCells();
-})
-
 drawGrid();
 drawCells();
-updateTicksPerFrameValue();
 play();

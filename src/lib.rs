@@ -1,7 +1,6 @@
 mod utils;
 
 use std::fmt;
-use js_sys::Math;
 
 use wasm_bindgen::prelude::*;
 
@@ -74,15 +73,6 @@ impl Universe {
             self.cells[idx] = Cell::Alive;
         }
     }
-
-    fn set_cells_by_deltas(&mut self, row: u32, column: u32, deltas: &[(u32, u32)]) {
-        for (delta_row, delta_column) in deltas {
-            let alive_row = (row + delta_row) % self.height;
-            let alive_column = (column + delta_column) % self.width;
-            let index = self.get_index(alive_row, alive_column);
-            self.cells[index] = Cell::Alive;
-        }
-    }
 }
 
 /// Public methods, exported to JavaScript.
@@ -128,7 +118,13 @@ impl Universe {
         let height = 64;
 
         let cells = (0..width * height)
-            .map(|_| Cell::Dead)
+            .map(|i| {
+                if i % 2 == 0 || i % 7 == 0 {
+                    Cell::Alive
+                } else {
+                    Cell::Dead
+                }
+            })
             .collect();
 
         Universe {
@@ -173,79 +169,6 @@ impl Universe {
     pub fn toggle_cell(&mut self, row: u32, column: u32) {
         let idx = self.get_index(row, column);
         self.cells[idx].toggle();
-    }
-
-    pub fn insert_glider(&mut self, row: u32, column: u32) {
-        let (h, w) = (self.height, self.width);
-        //   -1 0 1
-        // -1 _ # _
-        //  0 _ _ #
-        //  1 # # #
-        let deltas = [
-                        (h-1, 0),
-                                    (0, 1),
-            (1, w-1),   (1, 0),     (1, 1),
-        ];
-        self.set_cells_by_deltas(row, column, &deltas);
-    }
-
-    pub fn insert_pulsar(&mut self, row: u32, column: u32) {
-        let (h, w) = (self.height, self.width);
-        //   -6-5-4-3-2-1 0 1 2 3 4 5 6
-        // -6 _ _ # # # _ _ _ # # # _ _
-        // -5 _ _ _ _ _ _ _ _ _ _ _ _ _
-        // -4 # _ _ _ _ # _ # _ _ _ _ #
-        // -3 # _ _ _ _ # _ # _ _ _ _ #
-        // -2 # _ _ _ _ # _ # _ _ _ _ #
-        // -1 _ _ # # # _ _ _ # # # _ _
-        //  0 _ _ _ _ _ _ _ _ _ _ _ _ _
-        //  1 _ _ # # # _ _ _ # # # _ _
-        //  2 # _ _ _ _ # _ # _ _ _ _ #
-        //  3 # _ _ _ _ # _ # _ _ _ _ #
-        //  4 # _ _ _ _ # _ # _ _ _ _ #
-        //  5 _ _ _ _ _ _ _ _ _ _ _ _ _
-        //  6 _ _ # # # _ _ _ # # # _ _
-        let deltas = [
-                (h-6, w-4), (h-6, w-3), (h-6, w-2),         (h-6, 2), (h-6, 3), (h-6, 4),
-
-            (h-4, w-6),                     (h-4, w-1), (h-4, 1),                   (h-4, 6),
-            (h-3, w-6),                     (h-3, w-1), (h-3, 1),                   (h-3, 6),
-            (h-2, w-6),                     (h-2, w-1), (h-2, 1),                   (h-2, 6),
-                (h-1, w-4), (h-1, w-3), (h-1, w-2),         (h-1, 2), (h-1, 3), (h-1, 4),
-
-                (1, w-4),   (1, w-3),   (1, w-2),           (1, 2),     (1, 3), (1, 4),
-            (2, w-6),                       (2, w-1),   (2, 1),                     (2, 6),
-            (3, w-6),                       (3, w-1),   (3, 1),                     (3, 6),
-            (4, w-6),                       (4, w-1),   (4, 1),                     (4, 6),
-    
-                (6, w-4),   (6, w-3),   (6, w-2),           (6, 2),     (6, 3), (6, 4),
-        ];
-        self.set_cells_by_deltas(row, column, &deltas);
-    }
-
-    pub fn reset_to_mod_2_mod_7(&mut self) {
-        self.cells = (0..self.width * self.height).map(|i| {
-            if i % 2 == 0 || i % 7 == 0 {
-                Cell::Alive
-            } else {
-                Cell::Dead
-            }
-        }).collect();
-    }
-
-    pub fn reset_to_random(&mut self) {
-        let alive_probability = 0.5;
-        self.cells = (0..self.width * self.height).map(|_| {
-            if Math::random() >= alive_probability {
-                Cell::Alive
-            } else {
-                Cell::Dead
-            }
-        }).collect();
-    }
-
-    pub fn reset_to_dead(&mut self) {
-        self.cells = (0..self.width * self.height).map(|_| Cell::Dead).collect();
     }
 }
 
